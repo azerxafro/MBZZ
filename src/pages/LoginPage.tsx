@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
+
 const LoginPage = () => {
   const { signIn, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -8,22 +10,53 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
+  const [successState, setSuccessState] = useState<'idle' | 'confirm_email' | 'signed_in'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
+    setSuccessState('idle');
     setLoading(true);
+
     if (isLogin) {
       const { error } = await signIn(email, password);
-      if (error) setError(error.message);
+      if (error) {
+        // Friendly error messages
+        if (error.message.includes('Invalid login')) {
+          setError('Invalid email or password. Check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Your email is not yet confirmed. Check your inbox (and spam folder).');
+        } else {
+          setError(error.message);
+        }
+      }
     } else {
-      const { error } = await signUp(email, password);
-      if (error) setError(error.message);
-      else setSuccess('Check your email to confirm your account!');
+      const { error, autoSignedIn } = await signUp(email, password, `${SITE_URL}/`);
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          setError('An account with this email already exists. Try signing in instead.');
+        } else if (error.message.includes('rate limit')) {
+          setError('Too many requests. Please wait a minute and try again.');
+        } else {
+          setError(error.message);
+        }
+      } else if (autoSignedIn) {
+        // Email confirmation is disabled in Supabase — user is immediately signed in
+        setSuccessState('signed_in');
+      } else {
+        // Email confirmation is enabled — user must check inbox
+        setSuccessState('confirm_email');
+      }
     }
     setLoading(false);
+  };
+
+  const switchMode = (login: boolean) => {
+    setIsLogin(login);
+    setError('');
+    setSuccessState('idle');
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -47,53 +80,84 @@ const LoginPage = () => {
           {isLogin ? 'AUTHENTICATE TO ENTER THE STREAM' : 'CREATE YOUR NEURAL PROFILE'}
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="login-field">
-            <label className="login-label">NEURAL_ID // EMAIL</label>
-            <input
-              type="email"
-              className="login-input"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="user@nightcity.net"
-              required
-            />
+        {/* Confirm email state — full card replacement */}
+        {successState === 'confirm_email' ? (
+          <div className="login-confirm-state">
+            <div className="login-confirm-icon">✉</div>
+            <div className="login-confirm-title">CONFIRMATION_LINK_SENT</div>
+            <p className="login-confirm-body">
+              A confirmation link has been sent to<br />
+              <strong style={{ color: 'var(--accent-yellow)' }}>{email}</strong>
+            </p>
+            <p className="login-confirm-hint">
+              Check your <strong>inbox and spam folder</strong>. Click the link to activate your account,
+              then come back and sign in.
+            </p>
+            <button
+              className="login-btn"
+              style={{ marginTop: 24 }}
+              onClick={() => { setSuccessState('idle'); setIsLogin(true); }}
+            >
+              ▶ BACK TO SIGN IN
+            </button>
+            <div className="login-resend">
+              Didn't get it?{' '}
+              <span onClick={handleSubmit as any}>Resend email</span>
+            </div>
           </div>
-          <div className="login-field">
-            <label className="login-label">PASSKEY // PASSWORD</label>
-            <input
-              type="password"
-              className="login-input"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+        ) : (
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="login-field">
+              <label className="login-label">NEURAL_ID // EMAIL</label>
+              <input
+                type="email"
+                className="login-input"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="user@nightcity.net"
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="login-field">
+              <label className="login-label">PASSKEY // PASSWORD</label>
+              <input
+                type="password"
+                className="login-input"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="min. 6 characters"
+                required
+                minLength={6}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+              />
+            </div>
+
+            {error && <div className="login-error">⚠ {error}</div>}
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading
+                ? 'AUTHENTICATING...'
+                : isLogin
+                ? '▶ ENTER THE STREAM'
+                : '▶ CREATE PROFILE'}
+            </button>
+          </form>
+        )}
+
+        {successState !== 'confirm_email' && (
+          <div className="login-switch">
+            {isLogin ? (
+              <>NEW TO NIGHT CITY?{' '}
+                <span onClick={() => switchMode(false)}>CREATE PROFILE</span>
+              </>
+            ) : (
+              <>ALREADY CONNECTED?{' '}
+                <span onClick={() => switchMode(true)}>SIGN IN</span>
+              </>
+            )}
           </div>
-
-          {error && <div className="login-error">⚠ {error}</div>}
-          {success && <div className="login-success">✓ {success}</div>}
-
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'AUTHENTICATING...' : isLogin ? '▶ ENTER THE STREAM' : '▶ CREATE PROFILE'}
-          </button>
-        </form>
-
-        <div className="login-switch">
-          {isLogin ? (
-            <>NEW TO NIGHT CITY?{' '}
-              <span onClick={() => { setIsLogin(false); setError(''); }}>
-                CREATE PROFILE
-              </span>
-            </>
-          ) : (
-            <>ALREADY CONNECTED?{' '}
-              <span onClick={() => { setIsLogin(true); setError(''); }}>
-                SIGN IN
-              </span>
-            </>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="login-footer">

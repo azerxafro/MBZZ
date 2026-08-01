@@ -7,7 +7,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, redirectTo?: string) => Promise<{ error: any; autoSignedIn: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -39,9 +39,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error };
+  const signUp = async (email: string, password: string, redirectTo?: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    });
+    // If session is immediately returned, email confirmation is disabled
+    const autoSignedIn = !error && !!data.session;
+    return { error, autoSignedIn };
   };
 
   const signOut = async () => {

@@ -1,25 +1,61 @@
-import React from 'react';
-import { Search, Bell, ChevronDown } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { Bell, ChevronDown, LogOut, User } from 'lucide-react';
+import SearchBar from './SearchBar';
+import { useState } from 'react';
 
 const Navbar = () => {
+  const { currentPage, setCurrentPage } = useApp();
+  const { user, signOut } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const navLinks: { label: string; page: any }[] = [
+    { label: 'HOME', page: 'home' },
+    { label: 'TV SHOWS', page: 'tvshows' },
+    { label: 'MOVIES', page: 'movies' },
+    { label: 'NEW & HOT', page: 'newandhot' },
+    { label: 'MY LIST', page: 'mylist' },
+  ];
+
   return (
     <div className="navbar">
       <div className="nav-links">
-        <a href="#" className="nav-link active">HOME</a>
-        <a href="#" className="nav-link">TV SHOWS</a>
-        <a href="#" className="nav-link">MOVIES</a>
-        <a href="#" className="nav-link">NEW & HOT</a>
-        <a href="#" className="nav-link">MY LIST</a>
+        {navLinks.map(({ label, page }) => (
+          <a
+            key={page}
+            className={`nav-link ${currentPage === page ? 'active' : ''}`}
+            onClick={() => setCurrentPage(page)}
+          >
+            {label}
+          </a>
+        ))}
       </div>
       <div className="nav-right">
-        <Search className="nav-icon" size={20} />
+        <SearchBar />
         <span className="kids-text">KIDS</span>
         <div className="notification">
           <Bell className="nav-icon" size={20} />
           <span className="notif-badge">3</span>
         </div>
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop" alt="Profile" className="profile-pic" />
-        <ChevronDown className="nav-icon" size={20} />
+        <div className="profile-menu-wrap" style={{ position: 'relative' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            onClick={() => setProfileOpen(p => !p)}
+          >
+            <div className="profile-avatar">
+              <User size={16} />
+            </div>
+            <ChevronDown className="nav-icon" size={16} />
+          </div>
+          {profileOpen && (
+            <div className="profile-dropdown">
+              <div className="profile-email">{user?.email}</div>
+              <button className="profile-signout" onClick={signOut}>
+                <LogOut size={14} /> DISCONNECT
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

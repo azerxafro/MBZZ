@@ -14,6 +14,18 @@ import NewAndHotPage from './pages/NewAndHotPage';
 import MyListPage from './pages/MyListPage';
 import SearchPage from './pages/SearchPage';
 import Row from './components/Row';
+import { prefetch } from './services/tmdb';
+
+// Kick off the most-used endpoints immediately on module load
+prefetch([
+  '/trending/all/week',
+  '/movie/popular',
+  '/tv/top_rated',
+  '/movie/top_rated',
+  '/movie/now_playing',
+  '/tv/popular',
+  '/trending/all/day',
+]);
 
 const Clock = () => {
   const [time, setTime] = useState('');

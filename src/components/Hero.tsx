@@ -1,99 +1,97 @@
-import { useEffect, useState } from 'react';
-import { Play, Plus, Check, Volume2, VolumeX } from 'lucide-react';
-import { fetchMovies, fetchDetails, getImageUrl, getYouTubeKey } from '../services/tmdb';
-import { useApp } from '../context/AppContext';
+import heroBg from "../assets/hero-background.jpg";
+import Header from "./Header";
 
 const Hero = () => {
-  const [movie, setMovie] = useState<any>(null);
-  const [details, setDetails] = useState<any>(null);
-  const [muted, setMuted] = useState(true);
-  const [showVideo, setShowVideo] = useState(false);
-  const { setStreamingItem, addToList, removeFromList, isInList } = useApp();
+    return (
+        <div className="relative min-h-screen flex flex-col overflow-hidden w-full">
+            {/* Animated Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-900/20 to-black" />
+            
+            {/* Background Image with Enhanced Effects */}
+            <img
+                src={heroBg}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover opacity-40"
+            />
 
-  useEffect(() => {
-    const getHeroMovie = async () => {
-      const movies = await fetchMovies('/trending/all/week');
-      if (movies?.length) {
-        const pick = movies[Math.floor(Math.random() * Math.min(5, movies.length))];
-        setMovie(pick);
-        const type = pick.media_type === 'tv' ? 'tv' : 'movie';
-        const d = await fetchDetails(type, pick.id);
-        setDetails(d);
-        // Show video after 2s
-        setTimeout(() => setShowVideo(true), 2000);
-      }
-    };
-    getHeroMovie();
-  }, []);
+            {/* Animated Overlay */}
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black pointer-events-none" />
+            
+            {/* Decorative Elements */}
+            <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+            <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
 
-  if (!movie) return <div className="hero" />;
+            <Header />
 
-  const videoKey = details ? getYouTubeKey(details.videos) : null;
-  const type = movie.media_type === 'tv' ? 'tv' : 'movie';
-  const inList = isInList(movie.id);
+            {/* Hero Content */}
+            <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-20">
+                <div className="text-center max-w-5xl space-y-8 animate-fade-in">
+                    {/* Badge */}
+                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/15 transition-colors">
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        Watch Now. Anytime. Anywhere.
+                    </div>
 
-  return (
-    <div className="hero">
-      <div
-        className="hero-bg"
-        style={{ backgroundImage: `url(${getImageUrl(movie.backdrop_path)})` }}
-      />
+                    {/* Main Heading */}
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-tight text-white space-y-2">
+                        <span className="bg-gradient-to-r from-white via-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">
+                            Unlimited movies,
+                        </span>
+                        <br />
+                        <span className="bg-gradient-to-r from-red-400 via-red-500 to-orange-400 bg-clip-text text-transparent drop-shadow-lg">
+                            TV shows, and more
+                        </span>
+                    </h1>
 
-      {showVideo && videoKey && (
-        <iframe
-          className="hero-video"
-          src={`https://www.youtube.com/embed/${videoKey}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&loop=1&playlist=${videoKey}&modestbranding=1&showinfo=0`}
-          allow="autoplay; encrypted-media"
-          title="hero-video"
-        />
-      )}
+                    {/* Subheading */}
+                    <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                        Experience premium entertainment with our vast library. Watch your favorites anywhere, anytime.
+                    </p>
 
-      <div className="hero-content">
-        <div className="series-tag">
-          <span className="n-icon">N</span>
-          <span>{type === 'tv' ? 'SERIES' : 'FILM'}</span>
+                    {/* Pricing Badge */}
+                    <div className="text-2xl md:text-3xl font-bold text-white">
+                        Starting at <span className="text-red-500">$7.99</span>
+                        <p className="text-base md:text-lg text-gray-400 font-normal mt-2">Cancel anytime, no commitment</p>
+                    </div>
+
+                    {/* Email Input and Button */}
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch max-w-2xl mx-auto pt-4">
+                        <input
+                            type="email"
+                            placeholder="Enter your email"
+                            className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-6 py-4 text-white placeholder-gray-400 text-base focus:outline-none focus:border-white/50 focus:bg-white/15 transition-all duration-300 shadow-lg"
+                        />
+                        <button 
+                            type="button"
+                            className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-lg text-lg font-bold whitespace-nowrap transition-all duration-300 flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl hover:scale-105 transform"
+                        >
+                            Get Started
+                            <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Trust Indicators */}
+                    <div className="pt-6 flex justify-center gap-8 text-sm text-gray-400">
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Free trial for 7 days
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            No credit card required
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <h1 className="hero-title">{movie.title || movie.name}</h1>
-
-        <div className="hero-actions" style={{ marginBottom: '20px' }}>
-          <button className="btn btn-primary" onClick={() => setStreamingItem({ ...movie, type })}>
-            <Play fill="black" size={18} /> PLAY
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => inList ? removeFromList(movie.id) : addToList(movie)}
-          >
-            {inList ? <Check size={18} /> : <Plus size={18} />}
-            {inList ? 'SAVED' : 'MY LIST'}
-          </button>
-        </div>
-
-        <p className="hero-desc">
-          {movie.overview?.length > 150 ? movie.overview.slice(0, 150) + '...' : movie.overview}
-        </p>
-
-        <div className="hero-meta">
-          <span>HDR</span>
-          <span>{(movie.release_date || movie.first_air_date || '2077').split('-')[0]}</span>
-          <span>{details?.number_of_seasons ? `${details.number_of_seasons} Season${details.number_of_seasons > 1 ? 's' : ''}` : '1 Season'}</span>
-          <span>4K</span>
-        </div>
-      </div>
-
-      {/* Volume toggle */}
-      {showVideo && videoKey && (
-        <button className="hero-mute-btn" onClick={() => setMuted(m => !m)}>
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
-      )}
-
-      <div style={{
-        position: 'absolute', right: '40px', bottom: '150px',
-        border: '1px solid var(--border-color)', padding: '2px 5px',
-        fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-muted)'
-      }}>R</div>
-    </div>
-  );
+    );
 };
 
 export default Hero;

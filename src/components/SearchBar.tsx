@@ -1,86 +1,69 @@
-import { useEffect, useRef, useState } from 'react';
-import { searchMulti, getImageUrl } from '../services/tmdb';
-import { useApp } from '../context/AppContext';
-import { Search, X } from 'lucide-react';
+import { Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from '@tanstack/react-router';
 
-const SearchBar = () => {
-  const { searchQuery, setSearchQuery } = useApp();
-  const [results, setResults] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { setStreamingItem } = useApp();
+export default function SearchBar() {
+    const [shouldShowSearch, setShouldShowSearch] = useState(false);
+    const [searchValue, setSearchValue] = useState("");
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!searchQuery.trim()) { setResults([]); return; }
-    const t = setTimeout(async () => {
-      setLoading(true);
-      const res = await searchMulti(searchQuery);
-      setResults(res.filter((r: any) => r.backdrop_path || r.poster_path).slice(0, 8));
-      setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
+    useEffect(() => {
+        const debounceTimer = setTimeout(() => {
+            if (searchValue.trim() && searchValue.trim().length > 0) {
+                navigate({ to: '/search', search: { movie: searchValue } });
+            }
+        }, 500);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        return () => {
+            clearTimeout(debounceTimer);
+        };
+    }, [searchValue, navigate]);
+
+    const handleSearchQueryChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const query = event.target.value;
+        setSearchValue(query);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
-  return (
-    <div className="search-wrap" ref={ref}>
-      <div className={`search-box ${open ? 'open' : ''}`}>
-        <Search size={16} className="search-icon" />
-        <input
-          className="search-input"
-          placeholder="SEARCH TITLES..."
-          value={searchQuery}
-          onChange={e => { setSearchQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-        />
-        {searchQuery && (
-          <button className="search-clear" onClick={() => { setSearchQuery(''); setResults([]); }}>
-            <X size={14} />
-          </button>
-        )}
-      </div>
+    const handleBlur = () => {
+ // Small delay allows clicking on search results before hiding
++        setTimeout(() => setShouldShowSearch(false), 150);    };
 
-      {open && searchQuery && (
-        <div className="search-dropdown">
-          {loading && <div className="search-status">SCANNING NEURAL NET...</div>}
-          {!loading && results.length === 0 && <div className="search-status">NO SIGNAL FOUND</div>}
-          {results.map(r => (
-            <div
-              key={r.id}
-              className="search-result"
-              onClick={() => {
-                setStreamingItem({ ...r, type: r.media_type === 'tv' ? 'tv' : 'movie' });
-                setOpen(false);
-                setSearchQuery('');
-              }}
-            >
-              <img
-                src={getImageUrl(r.backdrop_path || r.poster_path, 'w200')}
-                className="search-result-thumb"
-                alt=""
-              />
-              <div className="search-result-info">
-                <div className="search-result-title">{r.title || r.name}</div>
-                <div className="search-result-meta">
-                  <span className="search-type-badge">{r.media_type?.toUpperCase()}</span>
-                  {(r.release_date || r.first_air_date)?.split('-')[0]}
-                  {r.vote_average ? ` • ⭐ ${r.vote_average.toFixed(1)}` : ''}
+    const handleSearchClick = () => {
+        setShouldShowSearch(true);
+    };
+
+
+
+    return (
+        <div className="flex items-center">
+            {shouldShowSearch ? (
+                <div className="flex items-center bg-black/80 border border-white/20 rounded-sm px-3 py-2 sm:w-full md:min-w-[280px] backdrop-blur-sm">
+                    <Search
+                        size={20}
+                        className="text-white/70 mr-3 flex-shrink-0"
+                    />
+                    <input
+                        className="bg-transparent text-white placeholder:text-white/60 text-sm focus:outline-none flex-1 font-normal"
+                        type="text"
+                        placeholder="Titles, people, genres"
+                        aria-label="Search"
+                        value={searchValue}
+                        onChange={handleSearchQueryChange}
+                        onBlur={handleBlur}
+                        autoFocus
+                    />
                 </div>
-              </div>
-            </div>
-          ))}
+            ) : (
+                <button
+                    onClick={handleSearchClick}
+                    className="p-2 hover:bg-white/10 rounded-sm transition-colors duration-200"
+                    aria-label="Search"
+                >
+                    <Search size={24} className="text-white" />
+                </button>
+            )}
         </div>
-      )}
-    </div>
-  );
-};
-
-export default SearchBar;
+    );
+}

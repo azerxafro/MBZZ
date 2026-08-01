@@ -113,7 +113,7 @@ function Row({ title, movies }: { title: string; movies: Movie[] }) {
             <MovieCard
               movie={m}
               onClick={() =>
-                navigate({ to: '/watch$movieId', params: { movieId: String(m.id) } })
+                navigate({ to: '/watch$movieId', params: { movieId: String(m.id) }, search: { type: m.media_type === 'tv' ? 'tv' : 'movie' } })
               }
             />
           </div>
@@ -157,7 +157,7 @@ function HeroBanner({ movie }: { movie: Movie }) {
         <div className="flex gap-3">
           <button
             onClick={() =>
-              navigate({ to: '/watch$movieId', params: { movieId: String(movie.id) } })
+              navigate({ to: '/watch$movieId', params: { movieId: String(movie.id) }, search: { type: movie.media_type === 'tv' ? 'tv' : 'movie' } })
             }
             className="flex items-center gap-2 bg-white text-black font-bold px-6 py-2.5 rounded-sm hover:bg-white/80 transition-colors text-sm"
           >

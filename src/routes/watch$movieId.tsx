@@ -1,59 +1,64 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
+import { createServerFn } from '@tanstack/react-start';
 import VideoPlayer from '../components/VideoPlayer';
-import { getMovieTrailers } from '../components/api/trailers';
 
 const WatchParamsSchema = z.object({
-    movieId: z.string().refine((val) => !isNaN(parseInt(val, 10)), {
-        message: 'Movie ID must be a valid number'
-    })
+  movieId: z.string().refine((val) => !isNaN(parseInt(val, 10)), {
+    message: 'Movie ID must be a valid number',
+  }),
 });
 
+// Fetch movie/TV metadata from TMDB so we can show title, backdrop, etc.
+const getMediaInfo = createServerFn()
+  .validator((data: { id: number; type: string }) => data)
+  .handler(async ({ data }) => {
+    const token = process.env.TMDB_AUTH_TOKEN;
+    if (!token) throw new Error('TMDB_AUTH_TOKEN not set');
+
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${data.type}/${data.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  });
+
 export const Route = createFileRoute('/watch$movieId')({
-    params: {
-        parse: (params) => {
-            const result = WatchParamsSchema.safeParse(params);
-            if (!result.success) {
-                throw new Error('Invalid movie ID');
-            }
-            return result.data;
-        },
-        stringify: (params) => params
+  params: {
+    parse: (params) => {
+      const result = WatchParamsSchema.safeParse(params);
+      if (!result.success) throw new Error('Invalid movie ID');
+      return result.data;
     },
-    loader: async ({ params }) => {
-        const movieIdNum = parseInt(params.movieId, 10);
-
-        if (isNaN(movieIdNum)) {
-            return { trailer: null, error: 'Invalid movie ID' };
-        }
-
-        try {
-            const trailers = await getMovieTrailers({ data: { movieId: movieIdNum } });
-            const mainTrailer = trailers[0] || null;
-
-            if (!mainTrailer) {
-                return { trailer: null, error: 'No trailers available for this movie' };
-            }
-
-            return { trailer: mainTrailer, error: null };
-        } catch (err) {
-            console.error('Error fetching trailers:', err);
-            return { trailer: null, error: 'Failed to load trailers' };
-        }
-    },
-    component: WatchComponent,
-    preload: 'intent'
+    stringify: (params) => params,
+  },
+  validateSearch: (search: Record<string, unknown>) => ({
+    type: (search.type as string) || 'movie',
+  }),
+  loader: async ({ params, search }) => {
+    const id = parseInt(params.movieId, 10);
+    const type = (search as any).type || 'movie';
+    try {
+      const info = await getMediaInfo({ data: { id, type } });
+      return { id, type, info };
+    } catch {
+      return { id, type, info: null };
+    }
+  },
+  component: WatchComponent,
+  preload: 'intent',
 });
 
 function WatchComponent() {
-    const { trailer, error } = Route.useLoaderData();
-    const navigate = useNavigate();
-
-    return (
-        <VideoPlayer
-            trailer={trailer}
-            error={error}
-            onBack={() => navigate({ to: '/' })}
-        />
-    );
+  const { id, type, info } = Route.useLoaderData();
+  const navigate = useNavigate();
+  return (
+    <VideoPlayer
+      tmdbId={id}
+      mediaType={type as 'movie' | 'tv'}
+      info={info}
+      onBack={() => navigate({ to: '/' })}
+    />
+  );
 }

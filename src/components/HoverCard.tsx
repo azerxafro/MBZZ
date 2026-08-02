@@ -8,9 +8,11 @@ interface HoverCardProps {
   mediaType?: 'movie' | 'tv';
   onClose: () => void;
   anchorRect: DOMRect;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect }: HoverCardProps) => {
+const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect, onMouseEnter, onMouseLeave }: HoverCardProps) => {
   const { addToList, removeFromList, isInList, setStreamingItem } = useApp();
   const [details, setDetails] = useState<any>(null);
   const [muted, setMuted] = useState(true);
@@ -41,8 +43,7 @@ const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect }: HoverCar
 
   return (
     <>
-      <div className="hovercard-backdrop" onClick={onClose} />
-      <div className="hovercard" style={style} ref={cardRef}>
+      <div className="hovercard" style={style} ref={cardRef} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
         <div className="hovercard-media">
           {videoKey ? (
             <iframe

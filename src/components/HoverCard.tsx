@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { fetchDetails, getImageUrl, getYouTubeKey } from '../services/tmdb';
+import { fetchDetails, getImageUrl } from '../services/tmdb';
 import { useApp } from '../context/AppContext';
-import { Play, Plus, Check, X, Info, Volume2, VolumeX } from 'lucide-react';
+import { Play, Plus, Check, X, Info } from 'lucide-react';
 
 interface HoverCardProps {
   movie: any;
@@ -15,7 +15,6 @@ interface HoverCardProps {
 const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect, onMouseEnter, onMouseLeave }: HoverCardProps) => {
   const { addToList, removeFromList, isInList, setStreamingItem } = useApp();
   const [details, setDetails] = useState<any>(null);
-  const [muted, setMuted] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
   const inList = isInList(movie.id);
   const type = movie.media_type === 'tv' || mediaType === 'tv' ? 'tv' : 'movie';
@@ -35,7 +34,6 @@ const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect, onMouseEnt
     return { position: 'fixed', top, left, width: cardW, zIndex: 1000 };
   })();
 
-  const videoKey = details ? getYouTubeKey(details.videos) : null;
   const genres = details?.genres?.slice(0, 3).map((g: any) => g.name) || [];
   const runtime = details?.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : details?.episode_run_time?.[0] ? `${details.episode_run_time[0]}m/ep` : '';
   const rating = movie.vote_average?.toFixed(1);
@@ -45,22 +43,8 @@ const HoverCard = ({ movie, mediaType = 'movie', onClose, anchorRect, onMouseEnt
     <>
       <div className="hovercard" style={style} ref={cardRef} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
         <div className="hovercard-media">
-          {videoKey ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${videoKey}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&loop=1&playlist=${videoKey}&modestbranding=1`}
-              allow="autoplay; encrypted-media"
-              className="hovercard-video"
-              title="preview"
-            />
-          ) : (
-            <img src={getImageUrl(movie.backdrop_path, 'w500')} className="hovercard-thumb" alt="" />
-          )}
+          <img src={getImageUrl(movie.backdrop_path, 'w500')} className="hovercard-thumb" alt="" />
           <div className="hovercard-media-overlay" />
-          {videoKey && (
-            <button className="hovercard-mute" onClick={() => setMuted(m => !m)}>
-              {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-            </button>
-          )}
           <button className="hovercard-close" onClick={onClose}><X size={14} /></button>
         </div>
 

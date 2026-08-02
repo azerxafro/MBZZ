@@ -1,83 +1,95 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronDown, Play, RefreshCw } from 'lucide-react';
 
-// ── Streaming providers (all free embeds using TMDB ID) ──────────────────────
+// ── Streaming providers (all free embeds via TMDB ID) ───────────────────────
 const PROVIDERS = {
   movie: [
-    { name: 'VidSrc', url: (id: number) => `https://vidsrc.to/embed/movie/${id}` },
-    { name: 'VidSrc.xyz', url: (id: number) => `https://vidsrc.xyz/embed/movie?tmdb=${id}` },
-    { name: 'Embed.su', url: (id: number) => `https://embed.su/embed/movie/${id}` },
-    { name: '2Embed', url: (id: number) => `https://www.2embed.cc/embed/${id}` },
-    { name: 'SuperEmbed', url: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
+    { name: 'VidSrc',     getUrl: (id: number) => `https://vidsrc.to/embed/movie/${id}` },
+    { name: '2Embed',     getUrl: (id: number) => `https://www.2embed.cc/embed/${id}` },
+    { name: 'Embed.su',   getUrl: (id: number) => `https://embed.su/embed/movie/${id}` },
+    { name: 'VidSrc.xyz', getUrl: (id: number) => `https://vidsrc.xyz/embed/movie?tmdb=${id}` },
+    { name: 'SuperEmbed', getUrl: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
   ],
   tv: [
-    { name: 'VidSrc', url: (id: number, s = 1, e = 1) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-    { name: 'VidSrc.xyz', url: (id: number) => `https://vidsrc.xyz/embed/tv?tmdb=${id}` },
-    { name: 'Embed.su', url: (id: number, s = 1, e = 1) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
-    { name: '2Embed', url: (id: number, s = 1, e = 1) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
-    { name: 'SuperEmbed', url: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
+    { name: 'VidSrc',     getUrl: (id: number, s: number, e: number) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
+    { name: '2Embed',     getUrl: (id: number, s: number, e: number) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
+    { name: 'Embed.su',   getUrl: (id: number, s: number, e: number) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
+    { name: 'VidSrc.xyz', getUrl: (id: number) => `https://vidsrc.xyz/embed/tv?tmdb=${id}` },
+    { name: 'SuperEmbed', getUrl: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
   ],
 };
 
 type Props = {
   tmdbId: number;
   mediaType: 'movie' | 'tv';
-  info: any;
   onBack: () => void;
 };
 
-export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) {
+export default function VideoPlayer({ tmdbId, mediaType, onBack }: Props) {
   const [providerIdx, setProviderIdx] = useState(0);
-  const [season, setSeason] = useState(1);
+  const [season, setSeason]   = useState(1);
   const [episode, setEpisode] = useState(1);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded]   = useState(false);
   const [showProviders, setShowProviders] = useState(false);
+  const [info, setInfo]       = useState<any>(null);
 
   const providers = PROVIDERS[mediaType];
-  const current = providers[providerIdx];
-  const embedUrl =
-    mediaType === 'tv'
-      ? (current.url as any)(tmdbId, season, episode)
-      : (current.url as any)(tmdbId);
+  const current   = providers[providerIdx];
 
-  const title = info?.title || info?.name || 'Unknown Title';
-  const backdrop = info?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w1280${info.backdrop_path}`
-    : null;
-  const seasons: number[] = info?.number_of_seasons
-    ? Array.from({ length: info.number_of_seasons }, (_, i) => i + 1)
-    : [1];
-  const episodes: number[] = Array.from({ length: info?.seasons?.[season - 1]?.episode_count || 20 }, (_, i) => i + 1);
+  // Build embed URL
+  const embedUrl = mediaType === 'tv'
+    ? (current.getUrl as any)(tmdbId, season, episode)
+    : (current.getUrl as any)(tmdbId);
 
-  // Reset loaded state when provider/ep/season changes
+  // Fetch movie/TV metadata client-side for backdrop + title
+  useEffect(() => {
+    const token = import.meta.env.VITE_TMDB_TOKEN;
+    if (!token) return;
+    fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setInfo(data))
+      .catch(() => {});
+  }, [tmdbId, mediaType]);
+
+  // Reset loaded flag on any change
   useEffect(() => { setLoaded(false); }, [providerIdx, season, episode]);
 
-  // Escape to go back
+  // ESC to go back
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onBack(); };
     document.addEventListener('keydown', h);
     return () => document.removeEventListener('keydown', h);
   }, [onBack]);
 
+  const title     = info?.title || info?.name || 'Loading…';
+  const backdrop  = info?.backdrop_path ? `https://image.tmdb.org/t/p/w1280${info.backdrop_path}` : null;
+  const numSeasons= info?.number_of_seasons ?? 1;
+  const seasons   = Array.from({ length: numSeasons }, (_, i) => i + 1);
+  const episodeCount = info?.seasons?.[season - 1]?.episode_count ?? 24;
+  const episodes  = Array.from({ length: episodeCount }, (_, i) => i + 1);
+
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* ── Top bar ── */}
+    <div className="min-h-screen bg-black flex flex-col overflow-hidden">
+
+      {/* ── Top bar ─────────────────────────────────────────── */}
       <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/90 to-transparent">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm transition-colors flex-shrink-0"
           >
             <ArrowLeft size={16} /> Back
           </button>
-          <span className="text-white font-semibold truncate max-w-xs">{title}</span>
+          <span className="text-white font-semibold truncate text-sm">{title}</span>
           {mediaType === 'tv' && (
-            <span className="text-white/50 text-sm">S{season}:E{episode}</span>
+            <span className="text-white/40 text-xs flex-shrink-0">S{season}:E{episode}</span>
           )}
         </div>
 
         {/* Provider picker */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <button
             onClick={() => setShowProviders(p => !p)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
@@ -92,14 +104,14 @@ export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) 
                 <button
                   key={p.name}
                   onClick={() => { setProviderIdx(i); setShowProviders(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
                     i === providerIdx
                       ? 'bg-red-600 text-white'
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {p.name}
-                  {i === 0 && <span className="ml-2 text-xs text-green-400">★ Best</span>}
+                  {i === 0 && <span className="text-[10px] text-green-400">★ Best</span>}
                 </button>
               ))}
             </div>
@@ -107,24 +119,25 @@ export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) 
         </div>
       </div>
 
-      {/* ── Player ── */}
-      <div className="flex-1 flex items-center justify-center pt-14 relative">
-        {/* Blurred backdrop behind player */}
+      {/* ── Iframe player ─────────────────────────────────── */}
+      <div className="relative flex-1 flex items-stretch pt-12" style={{ minHeight: 'calc(100vh - 48px)' }}>
+
+        {/* Blurred backdrop shown while loading */}
         {backdrop && !loaded && (
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-20 blur-xl"
-            style={{ backgroundImage: `url(${backdrop})` }}
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${backdrop})`, filter: 'blur(20px) brightness(0.3)' }}
           />
         )}
 
-        {/* Loading shimmer */}
+        {/* Loading state */}
         {!loaded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
-            <div className="w-16 h-16 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
-            <p className="text-white/50 text-sm">Loading stream — {current.name}</p>
+            <div className="w-14 h-14 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+            <p className="text-white/50 text-sm">Loading via {current.name}…</p>
             <button
-              onClick={() => setProviderIdx((i) => (i + 1) % providers.length)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white/70 text-xs transition-colors mt-2"
+              onClick={() => setProviderIdx(i => (i + 1) % providers.length)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white/60 text-xs transition-colors"
             >
               <RefreshCw size={12} /> Try next provider
             </button>
@@ -132,10 +145,15 @@ export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) 
         )}
 
         <iframe
-          key={`${providerIdx}-${season}-${episode}`}
+          key={`${tmdbId}-${providerIdx}-${season}-${episode}`}
           src={embedUrl}
-          className={`w-full transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          style={{ height: 'calc(100vh - 56px)' }}
+          className="w-full h-full"
+          style={{
+            minHeight: 'calc(100vh - 48px)',
+            opacity: loaded ? 1 : 0,
+            transition: 'opacity 0.4s',
+            border: 'none',
+          }}
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           referrerPolicy="origin"
@@ -144,10 +162,10 @@ export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) 
         />
       </div>
 
-      {/* ── TV Season / Episode picker ── */}
+      {/* ── TV: Season / Episode picker ─────────────────── */}
       {mediaType === 'tv' && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 bg-gradient-to-t from-black/95 to-transparent">
-          <span className="text-white/50 text-sm font-medium">Season</span>
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 bg-gradient-to-t from-black to-transparent">
+          <span className="text-white/50 text-xs font-medium">Season</span>
           <select
             value={season}
             onChange={e => { setSeason(Number(e.target.value)); setEpisode(1); }}
@@ -155,17 +173,14 @@ export default function VideoPlayer({ tmdbId, mediaType, info, onBack }: Props) 
           >
             {seasons.map(s => <option key={s} value={s}>S{s}</option>)}
           </select>
-          <span className="text-white/50 text-sm font-medium">Episode</span>
+          <span className="text-white/50 text-xs font-medium">Episode</span>
           <select
             value={episode}
             onChange={e => setEpisode(Number(e.target.value))}
             className="bg-zinc-800 text-white text-sm rounded px-2 py-1 border border-white/10 outline-none cursor-pointer"
           >
-            {episodes.map(e => <option key={e} value={e}>E{e}</option>)}
+            {episodes.map(ep => <option key={ep} value={ep}>E{ep}</option>)}
           </select>
-          <span className="text-white/40 text-xs ml-2">
-            {info?.name} — Season {season}, Episode {episode}
-          </span>
         </div>
       )}
     </div>

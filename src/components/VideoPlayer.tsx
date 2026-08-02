@@ -4,18 +4,24 @@ import { ArrowLeft, ChevronDown, Play, RefreshCw } from 'lucide-react';
 // ── Streaming providers (all free embeds via TMDB ID) ───────────────────────
 const PROVIDERS = {
   movie: [
-    { name: 'VidSrc',     getUrl: (id: number) => `https://vidsrc.to/embed/movie/${id}` },
-    { name: '2Embed',     getUrl: (id: number) => `https://www.2embed.cc/embed/${id}` },
+    { name: 'VidSrc.pro', getUrl: (id: number) => `https://vidsrc.pro/embed/movie/${id}` },
+    { name: 'VidSrc.cc',  getUrl: (id: number) => `https://vidsrc.cc/v2/embed/movie/${id}` },
+    { name: 'VidSrc.me',  getUrl: (id: number) => `https://vidsrc.me/embed/movie?tmdb=${id}` },
     { name: 'Embed.su',   getUrl: (id: number) => `https://embed.su/embed/movie/${id}` },
-    { name: 'VidSrc.xyz', getUrl: (id: number) => `https://vidsrc.xyz/embed/movie?tmdb=${id}` },
+    { name: 'AutoEmbed',  getUrl: (id: number) => `https://player.autoembed.cc/embed/movie/${id}` },
+    { name: 'VidSrc.xyz', getUrl: (id: number) => `https://vidsrc.xyz/embed/movie/${id}` },
+    { name: '2Embed',     getUrl: (id: number) => `https://www.2embed.cc/embed/${id}` },
     { name: 'SuperEmbed', getUrl: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
   ],
   tv: [
-    { name: 'VidSrc',     getUrl: (id: number, s: number, e: number) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-    { name: '2Embed',     getUrl: (id: number, s: number, e: number) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
+    { name: 'VidSrc.pro', getUrl: (id: number, s: number, e: number) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}` },
+    { name: 'VidSrc.cc',  getUrl: (id: number, s: number, e: number) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
+    { name: 'VidSrc.me',  getUrl: (id: number, s: number, e: number) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
     { name: 'Embed.su',   getUrl: (id: number, s: number, e: number) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
-    { name: 'VidSrc.xyz', getUrl: (id: number) => `https://vidsrc.xyz/embed/tv?tmdb=${id}` },
-    { name: 'SuperEmbed', getUrl: (id: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
+    { name: 'AutoEmbed',  getUrl: (id: number, s: number, e: number) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+    { name: 'VidSrc.xyz', getUrl: (id: number, s: number, e: number) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` },
+    { name: '2Embed',     getUrl: (id: number, s: number, e: number) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
+    { name: 'SuperEmbed', getUrl: (id: number, s: number, e: number) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
   ],
 };
 
@@ -95,7 +101,7 @@ export default function VideoPlayer({ tmdbId, mediaType, onBack }: Props) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
           >
             <Play size={12} fill="white" />
-            {current.name}
+            Server: {current.name}
             <ChevronDown size={14} />
           </button>
           {showProviders && (
@@ -111,7 +117,7 @@ export default function VideoPlayer({ tmdbId, mediaType, onBack }: Props) {
                   }`}
                 >
                   {p.name}
-                  {i === 0 && <span className="text-[10px] text-green-400">★ Best</span>}
+                  {i === 0 && <span className="text-[10px] text-green-400">★ Fast</span>}
                 </button>
               ))}
             </div>
@@ -126,20 +132,20 @@ export default function VideoPlayer({ tmdbId, mediaType, onBack }: Props) {
         {backdrop && !loaded && (
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${backdrop})`, filter: 'blur(20px) brightness(0.3)' }}
+            style={{ backgroundImage: `url(${backdrop})`, filter: 'blur(20px) brightness(0.3)', pointerEvents: 'none' }}
           />
         )}
 
         {/* Loading state */}
         {!loaded && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 pointer-events-none">
             <div className="w-14 h-14 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
-            <p className="text-white/50 text-sm">Loading via {current.name}…</p>
+            <p className="text-white/60 text-sm">Connecting to {current.name}…</p>
             <button
               onClick={() => setProviderIdx(i => (i + 1) % providers.length)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white/60 text-xs transition-colors"
+              className="pointer-events-auto flex items-center gap-1.5 px-4 py-2 rounded bg-black/70 border border-white/20 hover:bg-white/20 text-white text-xs transition-colors"
             >
-              <RefreshCw size={12} /> Try next provider
+              <RefreshCw size={12} /> Try next server
             </button>
           </div>
         )}
@@ -150,13 +156,11 @@ export default function VideoPlayer({ tmdbId, mediaType, onBack }: Props) {
           className="w-full h-full"
           style={{
             minHeight: 'calc(100vh - 48px)',
-            opacity: loaded ? 1 : 0,
-            transition: 'opacity 0.4s',
             border: 'none',
           }}
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          referrerPolicy="origin"
+          referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           title={title}
         />

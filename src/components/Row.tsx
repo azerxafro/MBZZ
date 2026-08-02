@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FC } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { FC } from 'react';
 import { fetchMovies, getImageUrl } from '../services/tmdb';
 import { useApp } from '../context/AppContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
